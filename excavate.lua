@@ -1,3 +1,5 @@
+local r = require ('robot')
+local c = require ('computer')
 local tArgs = { ... }
 if #tArgs ~= 1 then
 	print( "Usage: excavate <diameter>" )
@@ -24,22 +26,22 @@ local refuel -- Filled in further down
 local function unload( _bKeepOneFuelStack )
 	print( "Unloading items..." )
 	for n=1,16 do
-		local nCount = turtle.getItemCount(n)
+		local nCount = r.count(n)
 		if nCount > 0 then
-			turtle.select(n)
+			r.select(n)
 			local bDrop = true
-			if _bKeepOneFuelStack and turtle.refuel(0) then
-				bDrop = false
-				_bKeepOneFuelStack = false
-			end
+--			if _bKeepOneFuelStack and r.refuel(0) then
+--				bDrop = false
+--				_bKeepOneFuelStack = false
+--			end
 			if bDrop then
-				turtle.drop()
+				r.drop()
 				unloaded = unloaded + nCount
 			end
 		end
 	end
 	collected = 0
-	turtle.select(1)
+	r.select(1)
 end
 
 local function returnSupplies()
@@ -47,16 +49,16 @@ local function returnSupplies()
 	print( "Returning to surface..." )
 	goTo( 0,0,0,0,-1 )
 
-	local fuelNeeded = 2*(x+y+z) + 1
-	if not refuel( fuelNeeded ) then
+--	local fuelNeeded = 2*(x+y+z) + 1
+--	if not refuel( fuelNeeded ) then
+--		unload( true )
+--		print( "Waiting for fuel" )
+--		while not refuel( fuelNeeded ) do
+--			sleep(1)
+--		end
+--	else
 		unload( true )
-		print( "Waiting for fuel" )
-		while not refuel( fuelNeeded ) do
-			sleep(1)
-		end
-	else
-		unload( true )
-	end
+--	end
 
 	print( "Resuming mining..." )
 	goTo( x,y,z,xd,zd )
@@ -66,7 +68,7 @@ local function collect()
 	local bFull = true
 	local nTotalItems = 0
 	for n=1,16 do
-		local nCount = turtle.getItemCount(n)
+		local nCount = r.count(n)
 		if nCount == 0 then
 			bFull = false
 		end
@@ -88,32 +90,33 @@ local function collect()
 end
 
 function refuel( ammount )
-	local fuelLevel = turtle.getFuelLevel()
+--[[
+	local fuelLevel = c.energy()
 	if fuelLevel == "unlimited" then
 		return true
 	end
 
 	local needed = ammount or (xPos + zPos + depth + 1)
-	if turtle.getFuelLevel() < needed then
+	if c.energy() < needed then
 		local fueled = false
 		for n=1,16 do
-			if turtle.getItemCount(n) > 0 then
-				turtle.select(n)
-				if turtle.refuel(1) then
-					while turtle.getItemCount(n) > 0 and turtle.getFuelLevel() < needed do
-						turtle.refuel(1)
+			if r.count(n) > 0 then
+				r.select(n)
+				if r.refuel(1) then
+					while r.count(n) > 0 and c.energy() < needed do
+						r.refuel(1)
 					end
-					if turtle.getFuelLevel() >= needed then
-						turtle.select(1)
+					if c.energy() >= needed then
+						r.select(1)
 						return true
 					end
 				end
 			end
 		end
-		turtle.select(1)
+		r.select(1)
 		return false
 	end
-
+--]]
 	return true
 end
 
@@ -123,16 +126,16 @@ local function tryForwards()
 		returnSupplies()
 	end
 
-	while not turtle.forward() do
-		if turtle.detect() then
-			if turtle.dig() then
+	while not r.forward() do
+		if r.detect() then
+			if r.swing() then
 				if not collect() then
 					returnSupplies()
 				end
 			else
 				return false
 			end
-		elseif turtle.attack() then
+		elseif r.attack() then
 			if not collect() then
 				returnSupplies()
 			end
@@ -152,16 +155,16 @@ local function tryDown()
 		returnSupplies()
 	end
 
-	while not turtle.down() do
-		if turtle.detectDown() then
-			if turtle.digDown() then
+	while not r.down() do
+		if r.detectDown() then
+			if r.digDown() then
 				if not collect() then
 					returnSupplies()
 				end
 			else
 				return false
 			end
-		elseif turtle.attackDown() then
+		elseif r.attackDown() then
 			if not collect() then
 				returnSupplies()
 			end
@@ -179,20 +182,20 @@ local function tryDown()
 end
 
 local function turnLeft()
-	turtle.turnLeft()
+	r.turnLeft()
 	xDir, zDir = -zDir, xDir
 end
 
 local function turnRight()
-	turtle.turnRight()
+	r.turnRight()
 	xDir, zDir = zDir, -xDir
 end
 
 function goTo( x, y, z, xd, zd )
 	while depth > y do
-		if turtle.up() then
+		if r.up() then
 			depth = depth - 1
-		elseif turtle.digUp() or turtle.attackUp() then
+		elseif r.digUp() or r.attackUp() then
 			collect()
 		else
 			sleep( 0.5 )
@@ -204,9 +207,9 @@ function goTo( x, y, z, xd, zd )
 			turnLeft()
 		end
 		while xPos > x do
-			if turtle.forward() then
+			if r.forward() then
 				xPos = xPos - 1
-			elseif turtle.dig() or turtle.attack() then
+			elseif r.dig() or r.attack() then
 				collect()
 			else
 				sleep( 0.5 )
@@ -217,9 +220,9 @@ function goTo( x, y, z, xd, zd )
 			turnLeft()
 		end
 		while xPos < x do
-			if turtle.forward() then
+			if r.forward() then
 				xPos = xPos + 1
-			elseif turtle.dig() or turtle.attack() then
+			elseif r.dig() or r.attack() then
 				collect()
 			else
 				sleep( 0.5 )
@@ -232,9 +235,9 @@ function goTo( x, y, z, xd, zd )
 			turnLeft()
 		end
 		while zPos > z do
-			if turtle.forward() then
+			if r.forward() then
 				zPos = zPos - 1
-			elseif turtle.dig() or turtle.attack() then
+			elseif r.dig() or r.attack() then
 				collect()
 			else
 				sleep( 0.5 )
@@ -245,9 +248,9 @@ function goTo( x, y, z, xd, zd )
 			turnLeft()
 		end
 		while zPos < z do
-			if turtle.forward() then
+			if r.forward() then
 				zPos = zPos + 1
-			elseif turtle.dig() or turtle.attack() then
+			elseif r.dig() or r.attack() then
 				collect()
 			else
 				sleep( 0.5 )
@@ -256,9 +259,9 @@ function goTo( x, y, z, xd, zd )
 	end
 
 	while depth < y do
-		if turtle.down() then
+		if r.down() then
 			depth = depth + 1
-		elseif turtle.digDown() or turtle.attackDown() then
+		elseif r.digDown() or r.attackDown() then
 			collect()
 		else
 			sleep( 0.5 )
@@ -278,8 +281,8 @@ end
 print( "Excavating..." )
 
 local reseal = false
-turtle.select(1)
-if turtle.digDown() then
+r.select(1)
+if r.digDown() then
 	reseal = true
 end
 
@@ -346,7 +349,7 @@ goTo( 0,0,0,0,1 )
 
 -- Seal the hole
 if reseal then
-	turtle.placeDown()
+	r.placeDown()
 end
 
 print( "Mined "..(collected + unloaded).." items total." )
